@@ -1,0 +1,97 @@
+---
+title: "Homicide Reports"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse);source("clean.R")
+homicides <- clean()
+```
+
+```{r}
+homicides
+```
+```{r}
+homicides %>%
+  summarise_at(vars(PerpetratorAge, VictimAge), funs(max(., na.rm = T)))
+```
+
+```{r}
+homicides %>%
+  select(PerpetratorAge, VictimAge) %>%
+  gather() %>%
+ggplot(aes(x = value)) +
+  geom_histogram(bins = 100) +
+  facet_wrap(~key)
+```
+
+```{r, fig.height=5}
+toplot <- homicides %>%
+  select(VictimSex, VictimAge, PerpetratorSex, PerpetratorAge) %>%
+  filter(VictimSex %in% c("Female", "Male"),
+         PerpetratorSex %in% c("Female", "Male")) %>%
+  mutate(PerpetratorSex = paste0("Perpetrator: ", PerpetratorSex),
+         VictimSex = paste0("Victim: ", VictimSex))
+
+ggplot(toplot, aes(x = VictimAge, y = PerpetratorAge)) +
+  geom_point(alpha = 0.01) +
+  coord_equal() +
+  theme_minimal() +
+  facet_wrap(PerpetratorSex ~ VictimSex) +
+  labs(title = "Homicides 1980-2014")
+ggsave("homicides_and_gender.png")
+```
+
+```{r}
+lms <- homicides %>%
+  # count(PerpetratorSex, VictimSex) %>%
+  # arrange(n)
+  filter(VictimSex != "Unknown") %>%
+  nest(-PerpetratorSex, -VictimSex) %>%
+  # mutate(n_rows = nrow(data))
+  mutate(linear_model = map(data, ~ lm(PerpetratorAge ~ VictimAge + VictimRace + PerpetratorRace + Month + Year, data = .)))
+lms
+```
+
+```{r}
+library(stargazer)
+stargazer(lms$linearModel)
+```
+
+```{r}
+lm(PerpetratorAge ~ PerpetratorSex + VictimSex + VictimAge + VictimRace + PerpetratorRace + Month + Year, data = homicides) %>% summary
+```
+
+
+```{r}
+homicides %>%
+  count(VictimAge) %>%
+  arrange(desc(VictimAge))
+```
+
+```{r}
+homicides %>%
+  filter(VictimAge == 99) %>%
+  select(contains("Victim"))
+```
+
+```{r}
+homicides %>%
+  filter(PerpetratorAge == 0) %>%
+  select(contains("Perpetrator"))
+```
+
+
+```{r}
+homicides %>%
+  count(City, sort = T)
+```
+
+```{r}
+homicides %>%
+  count(State, sort = T)
+```
+
+```{r}
+
+```
